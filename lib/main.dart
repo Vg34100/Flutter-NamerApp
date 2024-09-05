@@ -9,18 +9,23 @@ void main() {
 }
 
 class MyAppColors {
-  static final darkBlue = Color(0xFF1E1E2C);
-  static final lightBlue = Color(0xFF2D2D44);
+  static const darkBlue = Color.fromARGB(255, 83, 212, 19);
+  static const lightBlue = Color.fromARGB(255, 40, 174, 211);
 }
 
 class MyAppThemes {
   static final lightTheme = ThemeData(
-    primaryColor: MyAppColors.lightBlue,
-    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 41, 185, 238)),
+      primaryColor: Color.fromARGB(255, 41, 185, 238),
+    // brightness: Brightness.light,
   );
 
   static final darkTheme = ThemeData(
-    primaryColor: MyAppColors.darkBlue,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color.fromARGB(255, 34, 41, 255),
+          brightness: Brightness.dark,
+        ),    
+        primaryColor: Color.fromARGB(255, 34, 41, 255),
     brightness: Brightness.dark,
   );
 }
@@ -113,14 +118,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
-  // ThemeMode _themeMode = ThemeMode.system;
   
-  // void toggleTheme() {
-  //   setState(() {
-  //     _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-  //   });
-  // }
-
   @override
   Widget build(BuildContext context) {
     Widget page;
@@ -168,7 +166,6 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: IconButton(
                               onPressed: () {
                                 MyApp.of(context).toggleTheme();
-                                print("object");
                               }, 
                               icon: Icon(MyApp.of(context)._themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode)),
                             ),
@@ -304,7 +301,7 @@ class GeneratorPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     BigCard(pair: pair),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 25),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -315,7 +312,7 @@ class GeneratorPage extends StatelessWidget {
                           icon: Icon(icon),
                           label: const Text('Like'),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 20),
                         ElevatedButton(
                           onPressed: () {
                             appState.getNext();
