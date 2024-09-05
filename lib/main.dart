@@ -8,16 +8,13 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyAppColors {
-  static const darkBlue = Color.fromARGB(255, 83, 212, 19);
-  static const lightBlue = Color.fromARGB(255, 40, 174, 211);
-}
-
+// Define light and dark themes
 class MyAppThemes {
   static final lightTheme = ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 41, 185, 238)),
-      primaryColor: Color.fromARGB(255, 41, 185, 238),
-    // brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 41, 185, 238),
+      brightness: Brightness.light),
+      primaryColor: const Color.fromARGB(255, 41, 185, 238),
+    brightness: Brightness.light,
   );
 
   static final darkTheme = ThemeData(
@@ -25,48 +22,58 @@ class MyAppThemes {
           seedColor: const Color.fromARGB(255, 34, 41, 255),
           brightness: Brightness.dark,
         ),    
-        primaryColor: Color.fromARGB(255, 34, 41, 255),
+        primaryColor: const Color.fromARGB(255, 34, 41, 255),
     brightness: Brightness.dark,
   );
 }
 
+
+// Main app widget
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
-  static _MyAppState of(BuildContext context) => 
-      context.findAncestorStateOfType<_MyAppState>()!;
+
+    // Allows accessing MyAppState from descendant widgets
+  static MyAppState of(BuildContext context) => 
+      context.findAncestorStateOfType<MyAppState>()!;
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<MyApp> createState() => MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+// State for the main app widget, manages theme mode
+class MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
+      create: (context) => MyAppStateModel(),
       child: MaterialApp(
         title: 'Namer App',
         theme: MyAppThemes.lightTheme,
         darkTheme: MyAppThemes.darkTheme,
-        themeMode: _themeMode, // Default mode
+        themeMode: _themeMode,
         home: const MyHomePage(),
       ),
     );
   }
 
+  // Toggles between light and dark theme
   void toggleTheme() {
     setState(() {
-      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;;
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     });
   }
 }
 
-class MyAppState extends ChangeNotifier {
+// Model class for app state, manages word pairs and favorites
+class MyAppStateModel extends ChangeNotifier {
   var current = WordPair.random();
+  // Adding favorites logic
+  var favorites = <WordPair>[];
 
-
+  // Adding discarded logic
+  var discarded = <WordPair>[];
 
   // Get the next WordPair
   void getNext() {
@@ -74,17 +81,6 @@ class MyAppState extends ChangeNotifier {
     current = WordPair.random();
     notifyListeners();
   }
-
-  // Adding favorites logic
-  var favorites = <WordPair>[];
-
-  // Adding discarded logic
-  var discarded = <WordPair>[];
-
-  // A darkMode
-  var isDarkMode = false;
-
-
 
   void toggleFavorite([WordPair? pair]) {
     pair = pair ?? current;
@@ -106,15 +102,14 @@ class MyAppState extends ChangeNotifier {
   }
 }
 
-
-
-
+// Main page of the app
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
+
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
@@ -159,6 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             selectedIndex = value;
                           });
                         },
+                        // Theme toggle button
                         trailing: Expanded(child: Align(
                           alignment: Alignment.bottomCenter,
                           child: Padding(
@@ -180,6 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ],
           ),
+          // Bottom navigation for small screens
           bottomNavigationBar: constraints.maxWidth < 450
               ? BottomNavigationBar(
                   items: const [
@@ -206,12 +203,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+// Favorites page displaying liked word pairs
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    var appState = context.watch<MyAppStateModel>();
     final theme = Theme.of(context);
 
     if (appState.favorites.isEmpty) {
@@ -269,13 +267,13 @@ class FavoritesPage extends StatelessWidget {
   }
 }
 
-
+// Main page for generating word pairs
 class GeneratorPage extends StatelessWidget {
   const GeneratorPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    var appState = context.watch<MyAppStateModel>();
     var pair = appState.current;
 
     IconData icon;
@@ -342,7 +340,7 @@ class DiscardedPairslist extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    var appState = context.watch<MyAppStateModel>();
     var discarded = appState.discarded;
 
 
@@ -411,7 +409,7 @@ class DiscardedPairslist extends StatelessWidget {
   }
 }
 
-
+// Widget for displaying the current word pair
 class BigCard extends StatelessWidget {
   const BigCard({
     super.key,
