@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,9 +27,10 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
-  
+
   // Get the next WordPair
   void getNext() {
+    discarded.insert(0, current); // Adding the passed word to the discarded array
     current = WordPair.random();
     notifyListeners();
   }
@@ -39,13 +38,27 @@ class MyAppState extends ChangeNotifier {
   // Adding favorites logic
   var favorites = <WordPair>[];
 
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
+  // Adding discarded logic
+  var discarded = <WordPair>[];
+
+
+  void toggleFavorite([WordPair? pair]) {
+    pair = pair ?? current;
+    if (favorites.contains(pair)) {
+      favorites.remove(pair);
     } else {
-      favorites.add(current);
+      favorites.add(pair);
     }
     notifyListeners();
+  }
+
+  void removeFavorite(WordPair pair) {
+    favorites.remove(pair);
+    notifyListeners();
+  }
+
+  bool isFavorite(WordPair pair) {
+    return favorites.contains(pair);
   }
 }
 
@@ -56,12 +69,11 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> { // The _ (underscore) means it's private
+class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-
     Widget page;
     switch (selectedIndex) {
       case 0:
@@ -74,32 +86,33 @@ class _MyHomePageState extends State<MyHomePage> { // The _ (underscore) means i
         throw UnimplementedError('no widget for $selectedIndex');
     }
 
-
-    return LayoutBuilder(builder: (context, constraints) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
         return Scaffold(
           body: Row(
             children: [
               SafeArea(
-                child: NavigationRail(
-                extended: constraints.maxWidth >= 600,  // Only shows name if the constraint is true
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home),
-                      label: Text('Home'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.favorite),
-                      label: Text('Favorites'),
-                    ),
-                  ],
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (value) {
-                    log('selected: $value');
-                    setState(() {
-                      selectedIndex = value;
-                    });
-                  },
-                ),
+                child: constraints.maxWidth < 450
+                    ? const SizedBox() // Empty SizedBox when width is small
+                    : NavigationRail(
+                        extended: constraints.maxWidth >= 600,
+                        destinations: const [
+                          NavigationRailDestination(
+                            icon: Icon(Icons.home),
+                            label: Text('Home'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.favorite),
+                            label: Text('Favorites'),
+                          ),
+                        ],
+                        selectedIndex: selectedIndex,
+                        onDestinationSelected: (value) {
+                          setState(() {
+                            selectedIndex = value;
+                          });
+                        },
+                      ),
               ),
               Expanded(
                 child: Container(
@@ -109,8 +122,28 @@ class _MyHomePageState extends State<MyHomePage> { // The _ (underscore) means i
               ),
             ],
           ),
+          bottomNavigationBar: constraints.maxWidth < 450
+              ? BottomNavigationBar(
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.favorite),
+                      label: 'Favorites',
+                    ),
+                  ],
+                  currentIndex: selectedIndex,
+                  onTap: (value) {
+                    setState(() {
+                      selectedIndex = value;
+                    });
+                  },
+                )
+              : null,
         );
-      }
+      },
     );
   }
 }
@@ -128,19 +161,30 @@ class FavoritesPage extends StatelessWidget {
       );
     }
 
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
-        ),
-        for (var pair in appState.favorites)
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
-          ),
-      ],
+    return GridView.builder( // Use of GridView instead of ListView
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 3,
+      ),
+      itemCount: appState.favorites.length,
+      itemBuilder: (context, index) {
+        final pair = appState.favorites[index];
+        return Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10), // Smaller border radius for more rectangular shape
+                    ),
+                  ),
+                  onPressed: () {
+                      appState.removeFavorite(pair);
+                  },
+                  icon: const Icon(Icons.delete),
+                  label: Text(pair.asLowerCase),
+                ),
+        );
+      },
     );
   }
 }
@@ -160,36 +204,132 @@ class GeneratorPage extends StatelessWidget {
       icon = Icons.favorite_border;
     }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // Centers the Column Vertically
-        children: [
-          BigCard(pair: pair),
-          const SizedBox(height: 10), // Add spacing between elements
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: const Text('Like'),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          children: [
+            // DiscardedPairslist takes up 30% of the available height
+            const Expanded(
+              child: DiscardedPairslist(),
+            ),
+            // BigCard section takes only the space it needs
+            Flexible(
+              fit: FlexFit.loose,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    BigCard(pair: pair),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            appState.toggleFavorite();
+                          },
+                          icon: Icon(icon),
+                          label: const Text('Like'),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            appState.getNext();
+                          },
+                          child: const Text('Next'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: const Text('Next'),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+            // This Spacer pushes the BigCard section to the center
+            // const Spacer(flex: 3),
+            const Expanded(child: SizedBox())
+            //const SizedBox(height: 200),
+
+          ],
+        );
+      },
     );
   }
 }
+
+class DiscardedPairslist extends StatelessWidget {
+  const DiscardedPairslist({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var discarded = appState.discarded;
+
+
+
+    if (discarded.isEmpty) {
+      return const Center(child: Text('No discarded pairs yet.'));
+    }
+
+    // Use a ScrollController to track the scroll position
+    ScrollController scrollController = ScrollController();
+
+     return LayoutBuilder(
+      builder: (context, constraints) {
+        return NotificationListener<ScrollNotification>(
+          onNotification: (scrollNotification) {
+            if (scrollNotification is ScrollUpdateNotification) {
+              (context as Element).markNeedsBuild();
+            }
+            return true;
+          },
+          child: ListView.builder(
+            controller: scrollController,
+            reverse: true,
+            itemCount: discarded.length,
+            itemBuilder: (context, index) {
+              final pair = discarded[index];
+              
+              double itemExtent = 56.0;
+              double itemPosition = index * itemExtent;
+              double visibleHeight = constraints.maxHeight;
+              double scrollOffset = scrollController.hasClients ? scrollController.offset : 0;
+              
+              double opacity = (itemPosition - scrollOffset) / visibleHeight;
+              opacity = 1.0 - opacity.clamp(0.0, 0.9);
+              
+              return Opacity(
+                opacity: opacity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          appState.isFavorite(pair) ? Icons.favorite : Icons.favorite_border,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        onPressed: () {
+                          appState.toggleFavorite(pair);
+                        },
+                      ),
+                      Text(
+                        pair.asLowerCase,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(color: Theme.of(context).colorScheme.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
 
 class BigCard extends StatelessWidget {
   const BigCard({
