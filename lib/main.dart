@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -154,6 +156,7 @@ class FavoritesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
+    final theme = Theme.of(context);
 
     if (appState.favorites.isEmpty) {
       return const Center(
@@ -161,33 +164,55 @@ class FavoritesPage extends StatelessWidget {
       );
     }
 
-    return GridView.builder( // Use of GridView instead of ListView
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 3,
-      ),
-      itemCount: appState.favorites.length,
-      itemBuilder: (context, index) {
-        final pair = appState.favorites[index];
-        return Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10), // Smaller border radius for more rectangular shape
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = max((width / 200).floor(), 1);
+
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          padding: const EdgeInsets.all(16),
+          itemCount: appState.favorites.length,
+          itemBuilder: (context, index) {
+            final pair = appState.favorites[index];
+            return ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              onPressed: () {
+                appState.removeFavorite(pair);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Icon(Icons.delete),
+                  Flexible(
+                    child: Text(
+                      pair.asLowerCase,
+                      style: theme.textTheme.bodyLarge,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  onPressed: () {
-                      appState.removeFavorite(pair);
-                  },
-                  icon: const Icon(Icons.delete),
-                  label: Text(pair.asLowerCase),
-                ),
+                  const SizedBox(width: 24), // To balance the delete icon
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 }
+
 
 class GeneratorPage extends StatelessWidget {
   const GeneratorPage({super.key});
