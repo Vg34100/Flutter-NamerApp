@@ -8,8 +8,34 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyAppColors {
+  static final darkBlue = Color(0xFF1E1E2C);
+  static final lightBlue = Color(0xFF2D2D44);
+}
+
+class MyAppThemes {
+  static final lightTheme = ThemeData(
+    primaryColor: MyAppColors.lightBlue,
+    brightness: Brightness.light,
+  );
+
+  static final darkTheme = ThemeData(
+    primaryColor: MyAppColors.darkBlue,
+    brightness: Brightness.dark,
+  );
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  static _MyAppState of(BuildContext context) => 
+      context.findAncestorStateOfType<_MyAppState>()!;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
@@ -17,18 +43,25 @@ class MyApp extends StatelessWidget {
       create: (context) => MyAppState(),
       child: MaterialApp(
         title: 'Namer App',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(133, 227, 232, 244)),
-        ),
+        theme: MyAppThemes.lightTheme,
+        darkTheme: MyAppThemes.darkTheme,
+        themeMode: _themeMode, // Default mode
         home: const MyHomePage(),
       ),
     );
+  }
+
+  void toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;;
+    });
   }
 }
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
+
+
 
   // Get the next WordPair
   void getNext() {
@@ -42,6 +75,10 @@ class MyAppState extends ChangeNotifier {
 
   // Adding discarded logic
   var discarded = <WordPair>[];
+
+  // A darkMode
+  var isDarkMode = false;
+
 
 
   void toggleFavorite([WordPair? pair]) {
@@ -64,6 +101,9 @@ class MyAppState extends ChangeNotifier {
   }
 }
 
+
+
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
@@ -73,6 +113,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
+  // ThemeMode _themeMode = ThemeMode.system;
+  
+  // void toggleTheme() {
+  //   setState(() {
+  //     _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +161,18 @@ class _MyHomePageState extends State<MyHomePage> {
                             selectedIndex = value;
                           });
                         },
+                        trailing: Expanded(child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: IconButton(
+                              onPressed: () {
+                                MyApp.of(context).toggleTheme();
+                                print("object");
+                              }, 
+                              icon: Icon(MyApp.of(context)._themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode)),
+                            ),
+                        )),
                       ),
               ),
               Expanded(
